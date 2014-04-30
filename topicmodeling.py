@@ -228,6 +228,7 @@ def main(argv):
         #Pull out the titles/abstracts of each article
         # articleDocs = [x["title"] for x in articles]
         articleDocs = [x["abstract"] for x in articles]
+        # articleDocs = [" ".join([x["title"], x["abstract"]]) for x in articles]
         
         #stopword list
         stopwords = stop_word_list()
@@ -288,9 +289,9 @@ def main(argv):
             print "Document Title: ", articles[i]['title']
             print "Document Abstract: ", articles[i]['abstract']
             print "Processed Document: ", articleDocs[i]
-            # print "TF_IDF Corpus: ", str(corpus_tfidf[i])
-            # print 'Matrix format: ' + str(corpus[i])
-            # print 'Topic probability mixture: ' + str(myLDA[corpus[i]])
+            print "TF_IDF Corpus: ", str(corpus_tfidf[i])
+            print 'Matrix format: ' + str(corpus[i])
+            print 'Topic probability mixture: ' + str(myLDA[corpus[i]])
 
             print "LDA:"
             print 'Topic probability mixture: ' + str(myLDA[corpus_tfidf[i]])
@@ -313,7 +314,7 @@ def main(argv):
             if myLSI[corpus[i]] != []:
                 print 'Topic probability mixture: ' + str(myLSI[corpus_tfidf[i]])
                 prob_topic_no_lsi = sorted(myLSI[corpus_tfidf[i]],key=lambda tup: tup[1], reverse=True)
-                for k,each_lsi in enumerate(prob_topic_no_lsi[:2]):
+                for k,each_lsi in enumerate(prob_topic_no_lsi[:2]): 
                     k += 1
                     print '%d Maximally probable topic LSI: topic #%s' % (k, str(each_lsi[0]))
                     #print 'Topic words: %s' % myLSI.print_topic(each_lsi[0],4)

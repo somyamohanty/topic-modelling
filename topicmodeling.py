@@ -96,7 +96,6 @@ def process_articles_gensim(articles):
 
 ### TOPIC MODELING ###
 def put_in_dict_corpus(filename, documents):
-    # stemmer = nltk.stem.SnowballStemmer('english')
     print "Rare words cleanup"
 
     texts = [[word for word in document] for document in documents]
@@ -153,11 +152,11 @@ def tf_idf(filename, corpus):
 
     return model, corpus_tfidf
 
-def lda(filename, corpus, dictionary):
+def lda(filename, corpus, dictionary, no_topics):
     print "Creating LDA model"
 
     if not os.path.isfile(filename+'.lda'):
-        model = gensim.models.ldamodel.LdaModel(corpus=corpus, num_topics= 20,id2word=dictionary, passes=250, update_every=1,chunksize=10000)
+        model = gensim.models.ldamodel.LdaModel(corpus=corpus, num_topics= no_topics,id2word=dictionary, passes=200, update_every=1,chunksize=10000)
         model.save(filename+'.lda')
         print "Created %s.lda" % (filename)
     else:
@@ -167,7 +166,7 @@ def lda(filename, corpus, dictionary):
     print "Created LDA model"    
     return model
 
-def lsi(filename, corpus, dictionary):
+def lsi(filename, corpus, dictionary, no_topics):
     print "Creating LSI model"
 
     if not os.path.isfile(filename+'.lsi'):
@@ -198,29 +197,39 @@ def hdp(filename, corpus, dictionary):
 
 ### END TOPIC MODELING ###
 
+def show_top_topics(topics_words_dict, topic_id, num_topics):
+    topic_list = topics_words_dict[topic_id]
+    topic_list_sorted = sorted(topic_list,key=lambda tup: tup[1], reverse=True)
+    topic_str = ", ".join("(word: %s, score: %s)" % tup for tup in topic_list_sorted[:num_topics])
+    return topic_str
+
+
+
 ### MAIN ###
 def main(argv):
     total = len(argv)
 
-    if total < 2:
-        print "Utilization: python topicmodelling.py <input_csv_file> <saved_models_filename>"
+    if total < 3:
+        print "Utilization: python topicmodelling.py <input_csv_file> <saved_models_filename> <no_topics>"
         exit(0)
 
     i_file = str(argv[1])
 
     filename = str(argv[2])
 
+    no_topics = argv[3]
+
     if os.path.isfile(i_file):
         
         #Read tweets from csv
+
         articles = read_articles(i_file)
         
         #Pull out the titles/abstracts of each
-        #articleDocs = [x["title"] for x in articles]
+        # articleDocs = [x["title"] for x in articles]
         articleDocs = [x["abstract"] for x in articles]
         
         #stopword list
-
         stopwords = stop_word_list()
 
         #Process them to clean bag of words
@@ -235,26 +244,35 @@ def main(argv):
         model, corpus_tfidf = tf_idf(filename, corpus)
 
         # Running LDA and printing results
-        myLDA = lda(filename, corpus_tfidf, dictionary)
-        LDAtopics = myLDA.show_topics(topics=20,topn=20,formatted=False)
+        myLDA = lda(filename, corpus_tfidf, dictionary, int(no_topics))
+
+        LDAtopics = myLDA.show_topics(topics=int(no_topics),topn=20,formatted=False)
         i = 0
+        lda_topics_words = {}
         for t in LDAtopics:
-            i += 1
             print "LDA Topic %i" % (i)
             print "======="
+            topic_score = []
             for w in t:
+                topic_score.append((w[1], w[0]))
                 print "%-*s %f" % (15, w[1], w[0])
+            lda_topics_words[i] = topic_score
+            i += 1
 
         #Running LSI and printing results
-        myLSI = lsi(filename, corpus_tfidf, dictionary)
-        LSItopics = myLSI.show_topics(num_words=25,formatted=False)
+        myLSI = lsi(filename, corpus_tfidf, dictionary, int(no_topics))
+        LSItopics = myLSI.show_topics(num_words=20,formatted=False)
         i = 0
+        lsi_topics_words = {}
         for t in LSItopics:
-            i += 1
             print "LSI Topic %i" % (i)
             print "======="
+            topic_score = []
             for w in t:
+                topic_score.append((w[1], w[0]))
                 print "%-*s %f" % (15, w[1], w[0])
+            lsi_topics_words[i] = topic_score
+            i += 1
 
         # #Running HDP and printing results
         # myHDP = hdp(filename, corpus_tfidf, dictionary)
@@ -275,36 +293,53 @@ def main(argv):
             # print 'Topic probability mixture: ' + str(myLDA[corpus[i]])
 
             print "LDA:"
-            prob_topic_no_lda = max(myLDA[corpus_tfidf[i]],key=itemgetter(1))[0]
             print 'Topic probability mixture: ' + str(myLDA[corpus_tfidf[i]])
-            print 'Maximally probable topic LDA: topic #' + str(prob_topic_no_lda)
-            print 'Topic words: ', myLDA.print_topic(prob_topic_no_lda)
 
-            if str(prob_topic_no_lda) in topic_doc_count_lda:
-                topic_doc_count_lda[str(prob_topic_no_lda)] += 1
-            else:
-                topic_doc_count_lda[str(prob_topic_no_lda)] = 1
+            prob_topic_no_lda = sorted(myLDA[corpus_tfidf[i]],key=lambda tup: tup[1], reverse=True)
+            for j,each_lda in enumerate(prob_topic_no_lda[:2]):
+                j += 1
+                print '%d Maximally probable topic LDA: topic #%s' % (j, str(each_lda[0]))
+                #print 'Topic words: %s' % myLDA.print_topic(each_lda[0],4)
+                print 'Topic words: %s' % show_top_topics(lda_topics_words, each_lda[0], 4)
+
+                if str(each_lda[0]) in topic_doc_count_lda:
+                    topic_doc_count_lda[str(each_lda[0])] += 1
+                else:
+                    topic_doc_count_lda[str(each_lda[0])] = 1
 
             print "-"*80
             
             print "LSI:"
             if myLSI[corpus[i]] != []:
-                prob_topic_no_lsi = max(myLSI[corpus_tfidf[i]],key=itemgetter(1))[0]
                 print 'Topic probability mixture: ' + str(myLSI[corpus_tfidf[i]])
-                print 'Maximally probable topic LSI: topic #' + str(prob_topic_no_lsi)
-                print 'Topic words: ', myLSI.print_topic(prob_topic_no_lsi)
+                prob_topic_no_lsi = sorted(myLSI[corpus_tfidf[i]],key=lambda tup: tup[1], reverse=True)
+                for k,each_lsi in enumerate(prob_topic_no_lsi[:2]):
+                    k += 1
+                    print '%d Maximally probable topic LSI: topic #%s' % (k, str(each_lsi[0]))
+                    #print 'Topic words: %s' % myLSI.print_topic(each_lsi[0],4)
+                    print 'Topic words: %s' % show_top_topics(lsi_topics_words, each_lsi[0], 4)
 
-                if str(prob_topic_no_lsi) in topic_doc_count_lsi:
-                    topic_doc_count_lsi[str(prob_topic_no_lsi)] += 1
-                else:
-                    topic_doc_count_lsi[str(prob_topic_no_lsi)] = 1
+                    if str(each_lsi[0]) in topic_doc_count_lsi:
+                        topic_doc_count_lsi[str(each_lsi[0])] += 1
+                    else:
+                        topic_doc_count_lsi[str(each_lsi[0])] = 1
             else:
                 print "No LSI model due to blank tfidf-corpus"
 
             print "="*80
 
-        print topic_doc_count_lda, topic_doc_count_lsi
+        print "="*80
+        print "="*80
 
+        print "LDA documents/topic"
+        for k,v in topic_doc_count_lda.items():
+            print "Topic %s in LDA models has %s number of documents" % (str(k),str(v))
+
+        print "\n"
+        print "LSI documents/topic"
+        for k,v in topic_doc_count_lsi.items():
+            print "Topic %s in LSI models has %s number of documents" % (str(k),str(v))
+        
 if __name__ == "__main__":
     main(sys.argv)
 ### END MAIN ###

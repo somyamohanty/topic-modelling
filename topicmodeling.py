@@ -244,7 +244,7 @@ def main(argv):
         #create TF-IDF model and corpus
         model, corpus_tfidf = tf_idf(filename, corpus)
 
-        # Running LDA and printing results
+        # Running LDA and printing results #comment just to run lsi
         myLDA = lda(filename, corpus_tfidf, dictionary, int(no_topics))
 
         LDAtopics = myLDA.show_topics(topics=int(no_topics),topn=20,formatted=False)
@@ -293,9 +293,9 @@ def main(argv):
             print 'Matrix format: ' + str(corpus[i])
             print 'Topic probability mixture: ' + str(myLDA[corpus[i]])
 
+            #comment just to run lsi
             print "LDA:"
             print 'Topic probability mixture: ' + str(myLDA[corpus_tfidf[i]])
-
             prob_topic_no_lda = sorted(myLDA[corpus_tfidf[i]],key=lambda tup: tup[1], reverse=True)
             for j,each_lda in enumerate(prob_topic_no_lda[:2]):
                 j += 1

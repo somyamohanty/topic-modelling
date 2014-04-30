@@ -221,11 +221,11 @@ def main(argv):
 
     if os.path.isfile(i_file):
         
-        #Read tweets from csv
+        #Read articles from tsv
 
         articles = read_articles(i_file)
         
-        #Pull out the titles/abstracts of each
+        #Pull out the titles/abstracts of each article
         # articleDocs = [x["title"] for x in articles]
         articleDocs = [x["abstract"] for x in articles]
         

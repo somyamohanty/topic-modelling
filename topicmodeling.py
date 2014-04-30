@@ -148,7 +148,7 @@ def tf_idf(filename, corpus):
         corpus_tfidf = gensim.corpora.MmCorpus(filename+'_corpus_tfidf.mm')
         print "Loaded %s_corpus_tfidf.mm" % (filename)
 
-    print "Created TF-IDF model and Corpus"
+    print "Created/Loaded TF-IDF model and Corpus"
 
     return model, corpus_tfidf
 
@@ -163,21 +163,21 @@ def lda(filename, corpus, dictionary, no_topics):
         model = gensim.models.ldamodel.LdaModel.load(filename+'.lda')
         print "Loaded %s.lda" % (filename)
     
-    print "Created LDA model"    
+    print "Created/Loaded LDA model"    
     return model
 
 def lsi(filename, corpus, dictionary, no_topics):
     print "Creating LSI model"
 
     if not os.path.isfile(filename+'.lsi'):
-        model = gensim.models.lsimodel.LsiModel(corpus=corpus, num_topics= 20,id2word=dictionary)
+        model = gensim.models.lsimodel.LsiModel(corpus=corpus, num_topics= no_topics,id2word=dictionary)
         model.save(filename+'.lsi')
         print "Created %s.lsi" % (filename)
     else:
         model = gensim.models.lsimodel.LsiModel.load(filename+'.lsi')
         print "Loaded %s.lsi" % (filename)
     
-    print "Created LSI model"    
+    print "Created/Loaded LSI model"    
     return model
 
 def hdp(filename, corpus, dictionary):
@@ -192,7 +192,7 @@ def hdp(filename, corpus, dictionary):
         print "Loaded %s.hdp" % (filename)
     
     print model.show_topics(topics=1, topn=20)
-    print "Created HDP model"    
+    print "Created/Loaded HDP model"    
     return model
 
 ### END TOPIC MODELING ###

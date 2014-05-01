@@ -60,16 +60,15 @@ def process_articles(articles, stoplist):
         temp = temp.split()
         cleanArticle = []
         for w in temp:
+            #Lowercase
+            w = w.lower()
+
             if w in stoplist:
                 continue        
         
             #Remove Special Chars
             w = ''.join([l for l in w if l in remove_list])
         
-            #Lowercase
-            w = w.lower()
-            if w.startswith('rt'):
-                continue
             if w != '':
                 w = stem(w, stemmer=LEMMA)
                 cleanArticle.append(w)

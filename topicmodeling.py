@@ -158,7 +158,7 @@ def lda(filename, corpus, dictionary, no_topics):
 
     if not os.path.isfile(filename+'.lda'):
         #model = gensim.models.ldamodel.LdaModel(corpus=corpus, num_topics= no_topics,id2word=dictionary, passes=50, update_every=1,chunksize=10000) #default alpha
-        model = gensim.models.ldamodel.LdaModel(corpus=corpus, num_topics= no_topics,id2word=dictionary, alpha=1, passes=50, update_every=1,chunksize=10000)
+        model = gensim.models.ldamodel.LdaModel(corpus=corpus, num_topics= no_topics,id2word=dictionary, alpha='auto', passes=50, update_every=1,chunksize=10000)
         model.save(filename+'.lda')
         print "Created %s.lda" % (filename)
     else:

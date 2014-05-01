@@ -12,6 +12,8 @@ from collections import Counter
 from dateutil import parser
 from pattern.vector import stem, PORTER, LEMMA
 from operator import itemgetter
+import plotly
+import json
 
 def stop_word_list():
     stoplist=set()
@@ -156,7 +158,8 @@ def lda(filename, corpus, dictionary, no_topics):
     print "Creating LDA model"
 
     if not os.path.isfile(filename+'.lda'):
-        model = gensim.models.ldamodel.LdaModel(corpus=corpus, num_topics= no_topics,id2word=dictionary, passes=200, update_every=1,chunksize=10000)
+        #model = gensim.models.ldamodel.LdaModel(corpus=corpus, num_topics= no_topics,id2word=dictionary, passes=50, update_every=1,chunksize=10000) #default alpha
+        model = gensim.models.ldamodel.LdaModel(corpus=corpus, num_topics= no_topics,id2word=dictionary, alpha=1, passes=50, update_every=1,chunksize=10000)
         model.save(filename+'.lda')
         print "Created %s.lda" % (filename)
     else:
@@ -191,7 +194,7 @@ def hdp(filename, corpus, dictionary):
         model = gensim.models.hdpmodel.HdpModel.load(filename+'.hdp')
         print "Loaded %s.hdp" % (filename)
     
-    print model.show_topics(topics=1, topn=20)
+    # print model.show_topics(topics=1, topn=20)
     print "Created/Loaded HDP model"    
     return model
 
@@ -203,6 +206,11 @@ def show_top_topics(topics_words_dict, topic_id, num_topics):
     topic_str = ", ".join("(word: %s, score: %s)" % tup for tup in topic_list_sorted[:num_topics])
     return topic_str
 
+def show_top_topics_plot(topics_words_dict, topic_id, num_topics):
+    topic_list = topics_words_dict[topic_id]
+    topic_list_sorted = sorted(topic_list,key=lambda tup: tup[1], reverse=True)
+    topic_str = ", ".join("%s - %s" % tup for tup in topic_list_sorted[:num_topics])
+    return topic_str
 
 
 ### MAIN ###
@@ -245,7 +253,7 @@ def main(argv):
         model, corpus_tfidf = tf_idf(filename, corpus)
 
         # Running LDA and printing results #comment just to run lsi
-        myLDA = lda(filename, corpus_tfidf, dictionary, int(no_topics))
+        myLDA = lda(filename, corpus, dictionary, int(no_topics))
 
         LDAtopics = myLDA.show_topics(topics=int(no_topics),topn=20,formatted=False)
         i = 0
@@ -275,12 +283,13 @@ def main(argv):
             lsi_topics_words[i] = topic_score
             i += 1
 
-        # #Running HDP and printing results
-        # myHDP = hdp(filename, corpus_tfidf, dictionary)
-        # myHDP.print_topics(topics=20, topn=10)
+        #Running HDP and printing results
+        myHDP = hdp(filename, corpus_tfidf, dictionary)
+        myHDP.print_topics(topics=20, topn=10)
         
-        topic_doc_count_lda = {}
-        topic_doc_count_lsi = {}
+        n_t = list(xrange(int(no_topics)))
+        topic_doc_count_lda = dict((t,0) for t in n_t)
+        topic_doc_count_lsi = dict((t,0) for t in n_t)
 
         for i in range(0, len(articles)):
             print '\n'
@@ -295,7 +304,7 @@ def main(argv):
 
             #comment just to run lsi
             print "LDA:"
-            print 'Topic probability mixture: ' + str(myLDA[corpus_tfidf[i]])
+            print 'Topic probability mixture: ' + str(myLDA[corpus[i]])
             prob_topic_no_lda = sorted(myLDA[corpus_tfidf[i]],key=lambda tup: tup[1], reverse=True)
             for j,each_lda in enumerate(prob_topic_no_lda[:2]):
                 j += 1
@@ -332,14 +341,86 @@ def main(argv):
         print "="*80
         print "="*80
 
+        py = plotly.plotly("somyamohanty", "94wksibtod")
+
         print "LDA documents/topic"
+
+        x_lda = []
+        y_lda = []
+        label_lda = []
         for k,v in topic_doc_count_lda.items():
             print "Topic %s in LDA models has %s number of documents" % (str(k),str(v))
+            label = show_top_topics_plot(lda_topics_words, int(k), 4)
+            topic_str = "Topic - " + str(k)
+            x_lda.append(topic_str)
+            y_lda.append(v)
+            label_lda.append(label)
 
+        layout = {
+            'title': 'LDA Topic-Document Distribution - ' + str(no_topics) + ' topics',
+            'xaxis': {'title': 'Topic'},
+            'yaxis': {'title': 'Number of Document'},
+            }
+
+        py.iplot([{
+            'x':x_lda, 
+            'y':y_lda, 
+            'type': 'bar', 
+            'name': 'Number of Docs',
+            'text': label_lda,
+            }], 
+            layout=layout, filename='lda_'+str(no_topics), fileopt='overwrite', width=1000, height=650)
+
+        lda_plot_dict = {
+            'x':x_lda,
+            'y':y_lda,
+            'labels':label_lda
+        }
         print "\n"
+
         print "LSI documents/topic"
+
+        x_lsi = []
+        y_lsi = []
+        label_lsi = []
         for k,v in topic_doc_count_lsi.items():
             print "Topic %s in LSI models has %s number of documents" % (str(k),str(v))
+            label = show_top_topics_plot(lsi_topics_words, int(k), 4)
+            topic_str = "Topic - " + str(k)
+            x_lsi.append(topic_str)
+            y_lsi.append(v)
+            label_lsi.append(label)
+
+        layout = {
+            'title': 'LSI Topic-Document Distribution - ' + str(no_topics) + ' topics',
+            'xaxis': {'title': 'Topic'},
+            'yaxis': {'title': 'Number of Document'},
+            'xref': 'paper', 'yref': 'paper', 'showarrow': False, 'x':0, 'y': 0,
+            }
+
+        py.iplot([{
+            'x':x_lsi, 
+            'y':y_lsi, 
+            'type': 'bar', 
+            'name': 'Number of Docs', 
+            'text': label_lsi,
+            }], 
+            layout=layout, filename='lsi_'+str(no_topics), fileopt='overwrite', width=1000, height=650)
+
+        lsi_plot_dict = {
+            'x':x_lsi,
+            'y':y_lsi,
+            'labels':label_lsi
+        }
+
+        plot_data = {
+            'lda':lda_plot_dict,
+            'lsi':lsi_plot_dict,
+        }
+
+        with open('50_def_alpha_plot_data.json', 'w') as f:
+            f.write(json.dumps(plot_data))
+        f.close()
         
 if __name__ == "__main__":
     main(sys.argv)

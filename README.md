@@ -1,4 +1,4 @@
-#Topic Modelling
+#Unsupervised Topic Modelling
 Topic modelling for scientific articles using gensim LDA, LSI and HDP implementations. Utilizes titles and abstracts of scientific articles to obtain document/topic distributions of the input data-set. Currently LDA performs the best with alpha='auto' and number of topics between 30-50.
 
 ## Requirements

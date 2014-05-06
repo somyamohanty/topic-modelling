@@ -9,8 +9,8 @@ Topic modelling for scientific articles using gensim LDA, LSI and HDP implementa
 
 ## Utilization
 
-'''
+```
 python topicmodeling.py <path_to_input> <path_to_saved_models_output> <number_of_topics>
-'''
+```
 
 
